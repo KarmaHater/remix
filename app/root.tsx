@@ -8,6 +8,8 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useNavigation,
+  useResolvedPath,
 } from "@remix-run/react";
 import tailwind from "./tailwind.css";
 import { DiscoverIcon, HomeIcon, RecipeBookIcon, SettingsIcon } from "./icons";
@@ -37,7 +39,7 @@ export default function App() {
             <AppNavLink to="discover">
               <DiscoverIcon />
             </AppNavLink>
-            <AppNavLink to="app">
+            <AppNavLink to="app/pantry">
               <RecipeBookIcon />
             </AppNavLink>
             <AppNavLink to="/settings">
@@ -45,7 +47,7 @@ export default function App() {
             </AppNavLink>
           </ul>
         </nav>
-        <div className="p-4">
+        <div className="p-4 w-full">
           <Outlet />
         </div>
 
@@ -64,14 +66,24 @@ function AppNavLink({
   to: string;
   children: React.ReactNode;
 }) {
+  const navigation = useNavigation();
+  const path = useResolvedPath(to);
+  const isLoading =
+    navigation.state === "loading" &&
+    navigation.location.pathname === path.pathname;
+
   return (
     <li className="w-16">
-      <NavLink reloadDocument to={to}>
+      <NavLink
+        // reloadDocument
+        to={to}
+      >
         {({ isActive }) => (
           <div
             className={classNames(
               "p-4 flex justify-center hover:bg-primary-light",
-              { "bg-primary-light": isActive }
+              isActive ? "bg-primary-light" : "",
+              isLoading ? "animate-pulse bg-primary-light" : ""
             )}
           >
             {children}
