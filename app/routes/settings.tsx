@@ -1,12 +1,14 @@
 import type { LoaderFunction } from "@remix-run/node";
-import { Link, Outlet, useLoaderData } from "@remix-run/react";
+import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
+import { useMatchesData } from "~/utils/useMatchesData";
 
 export const loader: LoaderFunction = () => {
-  return { message: "Hello from loader!" };
+  return { settingMessage: "Hello from loader!" };
 };
 
 export default function Settings() {
-  const { message } = useLoaderData();
+  const data = useLoaderData<typeof loader>();
+  const { message } = useMatchesData("routes/settings/profile");
   return (
     <div>
       <h1>Settings</h1>
@@ -15,8 +17,23 @@ export default function Settings() {
         <Link to="profile">Profile</Link>
       </nav>
       {message}
+      {data.settingMessage}
       {/* display the child route page here as well as the settings page above */}
       <Outlet />
     </div>
   );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  if (error instanceof Error) {
+    return (
+      <div>
+        <p>There was an error Settings page!</p>
+        <p>{error.message}</p>
+      </div>
+    );
+  }
+
+  return <p>There was an error Settings page!</p>;
 }
