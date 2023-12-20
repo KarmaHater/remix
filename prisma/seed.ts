@@ -5,13 +5,13 @@ const db = new PrismaClient();
 function getShelves() {
   return [
     {
-      name: "Dairy Products",
+      name: "Dairy",
       items: {
         create: [{ name: "Milk" }, { name: "Eggs" }, { name: "Cheese" }],
       },
     },
     {
-      name: "Fruit Products",
+      name: "Fruit",
       items: {
         create: [{ name: "Apples" }, { name: "Plums" }, { name: "Oranges" }],
       },
