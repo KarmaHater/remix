@@ -8,8 +8,8 @@ export const loader: LoaderFunction = () => {
 
 export default function Settings() {
   const data = useLoaderData<typeof loader>();
-  const appData = useMatchesData("~/routes/settings/app");
-  const profileData = useMatchesData("~/routes/settings/profile");
+  const appData = useMatchesData("routes/settings/app");
+  const profileData = useMatchesData("routes/settings/profile");
 
   console.log(appData);
   console.log(profileData);
