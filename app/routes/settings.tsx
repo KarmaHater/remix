@@ -15,8 +15,6 @@ export default function Settings() {
   console.log(profileData);
   console.log(data);
 
-  const { message } = useMatchesData("routes/settings/profile");
-  
   return (
     <div>
       <h1 style={{ border: "1px solid green", padding: "5px", margin: "15px" }}>

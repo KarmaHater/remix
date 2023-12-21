@@ -108,7 +108,7 @@ export function ErrorBoundary() {
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="bg-background">
         <div className="p-4">
           <h1 className="text-2xl pb-3">Whoops</h1>
           <p>You're seeing this page because an unexpected error occurred</p>

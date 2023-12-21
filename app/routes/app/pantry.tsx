@@ -1,3 +1,4 @@
+import z from "zod";
 import {
   type LoaderFunctionArgs,
   type ActionFunction,
@@ -14,10 +15,12 @@ import {
   getAllShelves,
   createShelf,
   deleteShelf,
+  saveShelf,
 } from "../../modals/pantry-shelf.server";
-import { SearchIcon, PlusIcon } from "~/icons";
+import { SearchIcon, PlusIcon, SaveIcon } from "~/icons";
 import classNames from "classnames";
 import { DeleteButton, PrimaryButton } from "~/components/forms";
+import { formValidation } from "~/utils/validation";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
@@ -29,19 +32,35 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
-  const shelfId = formData.get("shelfId");
+
+  const saveShelfNameSchema = z.object({
+    shelfName: z.string().min(1),
+    shelfId: z.string(),
+  });
+
+  const deleteShelfSchema = z.object({
+    shelfId: z.string(),
+  });
 
   switch (formData.get("_action")) {
-    case "deleteShelf":
-      if (typeof shelfId !== "string") {
-        return json(
-          { errors: { shelfId: "Shelf ID must be a string" } },
-          { status: 500 }
-        );
-      }
-      return deleteShelf(shelfId);
+    case "deleteShelf": {
+      return formValidation(
+        formData,
+        deleteShelfSchema,
+        (data) => deleteShelf(data.shelfId),
+        (errors) => json({ errors })
+      );
+    }
     case "createShelf":
       return createShelf();
+    case "saveShelf": {
+      return formValidation(
+        formData,
+        saveShelfNameSchema,
+        (data) => saveShelf(data.shelfId, data.shelfName),
+        (errors) => json({ errors })
+      );
+    }
   }
 };
 
@@ -127,18 +146,23 @@ export function Shelf({ shelf }: ShelfProps) {
       <saveShelfFetcher.Form
         reloadDocument
         method="post"
-        action={`/pantry/${shelf.id}`}
         placeholder="Shelf Name"
         autoComplete="off"
+        className="flex"
       >
         <input
           type="text"
+          name="shelfName"
           defaultValue={shelf.name}
           className={classNames(
-            "text-2xl font-extrabold mb-2 w-full outline-none",
-            "border-b-2 focus:border-b-primary"
+            "text-2xl font-extrabold mb-2 w-full outline-none m-l-4",
+            "border-b-2 border-b-background focus:border-b-primary"
           )}
         />
+        <button type="submit" className="ml-2" name="_action" value="saveShelf">
+          <SaveIcon />
+        </button>
+        <input type="hidden" name="shelfId" value={shelf.id} />
       </saveShelfFetcher.Form>
 
       <ul>
