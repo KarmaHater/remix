@@ -10,6 +10,8 @@ import {
   ScrollRestoration,
   useNavigation,
   useResolvedPath,
+  useRouteError,
+  Link,
 } from "@remix-run/react";
 import tailwind from "./tailwind.css";
 import { DiscoverIcon, HomeIcon, RecipeBookIcon, SettingsIcon } from "./icons";
@@ -39,7 +41,7 @@ export default function App() {
             <AppNavLink to="discover">
               <DiscoverIcon />
             </AppNavLink>
-            <AppNavLink to="app">
+            <AppNavLink to="app/pantry">
               <RecipeBookIcon />
             </AppNavLink>
             <AppNavLink to="/settings">
@@ -47,7 +49,7 @@ export default function App() {
             </AppNavLink>
           </ul>
         </nav>
-        <div className="p-4">
+        <div className="p-4 w-full">
           <Outlet />
         </div>
 
@@ -70,7 +72,8 @@ function AppNavLink({
   const path = useResolvedPath(to);
   const isLoading =
     navigation.state === "loading" &&
-    navigation.location.pathname === path.pathname;
+    navigation.location.pathname === path.pathname &&
+    navigation.formData === null;
 
   return (
     <li className="w-16">
@@ -91,5 +94,32 @@ function AppNavLink({
         )}
       </NavLink>
     </li>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  return (
+    <html>
+      <head>
+        <title>Whoops</title>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <div className="p-4">
+          <h1 className="text-2xl pb-3">Whoops</h1>
+          <p>You're seeing this page because an unexpected error occurred</p>
+          {error instanceof Error ? (
+            <p className="my-4 font-bold">{error.message}</p>
+          ) : null}
+          <Link to="/" className="text-primary">
+            Take me back to the home page
+          </Link>
+        </div>
+      </body>
+    </html>
   );
 }
