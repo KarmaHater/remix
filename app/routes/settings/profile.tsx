@@ -1,7 +1,7 @@
-import type { LoaderFunction } from "@remix-run/node";
+import { json, type LoaderFunction } from "@remix-run/node";
 
 export const loader: LoaderFunction = () => {
-  return { message: "Profile Data" };
+  return json({ message: "Profile Data" });
 };
 
 export default function Profile() {

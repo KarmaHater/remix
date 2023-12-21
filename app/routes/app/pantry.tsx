@@ -50,7 +50,9 @@ export default function Pantry() {
   const [searchParams] = useSearchParams();
   const navigation = useNavigation();
   const isSearching = navigation.formData?.has("q");
-  const isCreatingShelf = navigation.formData?.get("_action") === "createShelf";
+  const createShelfFetcher = useFetcher();
+  const isCreatingShelf =
+    createShelfFetcher.formData?.get("_action") === "createShelf";
 
   return (
     <div>
@@ -74,7 +76,7 @@ export default function Pantry() {
         />
       </Form>
 
-      <Form method="post">
+      <createShelfFetcher.Form method="post">
         <PrimaryButton
           className="mt-4"
           name="_action"
@@ -86,7 +88,7 @@ export default function Pantry() {
             {isCreatingShelf ? "Creating Shelf" : "Create"}
           </span>
         </PrimaryButton>
-      </Form>
+      </createShelfFetcher.Form>
 
       <ul className={classNames("flex gap-8 mt-4")}>
         {data.shelves.map((shelf) => (
@@ -107,6 +109,7 @@ type ShelfProps = {
 
 export function Shelf({ shelf }: ShelfProps) {
   const deleteShelfFetcher = useFetcher();
+  const saveShelfFetcher = useFetcher();
   const isDeleteShelf =
     deleteShelfFetcher.formData?.get("_action") === "deleteShelf" &&
     deleteShelfFetcher.formData?.get("shelfId") === shelf.id;
@@ -121,7 +124,23 @@ export function Shelf({ shelf }: ShelfProps) {
         "flex-none h-fit"
       )}
     >
-      <h1 className={"text-2xl font-extrabold mb-2"}>{shelf.name}</h1>
+      <saveShelfFetcher.Form
+        reloadDocument
+        method="post"
+        action={`/pantry/${shelf.id}`}
+        placeholder="Shelf Name"
+        autoComplete="off"
+      >
+        <input
+          type="text"
+          defaultValue={shelf.name}
+          className={classNames(
+            "text-2xl font-extrabold mb-2 w-full outline-none",
+            "border-b-2 focus:border-b-primary"
+          )}
+        />
+      </saveShelfFetcher.Form>
+
       <ul>
         {shelf.items.map((item) => (
           <li key={item.id} className="py-2">
@@ -129,7 +148,7 @@ export function Shelf({ shelf }: ShelfProps) {
           </li>
         ))}
       </ul>
-      <deleteShelfFetcher.Form className="pt-8" method="post" action="">
+      <deleteShelfFetcher.Form className="pt-8" method="post">
         <input type="hidden" name="shelfId" value={shelf.id} />
         <DeleteButton
           className={classNames("w-full")}
