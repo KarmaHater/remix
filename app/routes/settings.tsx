@@ -15,6 +15,8 @@ export default function Settings() {
   console.log(profileData);
   console.log(data);
 
+  const { message } = useMatchesData("routes/settings/profile");
+  
   return (
     <div>
       <h1 style={{ border: "1px solid green", padding: "5px", margin: "15px" }}>
@@ -34,13 +36,12 @@ export default function Settings() {
           Profile Link
         </Link>
       </nav>
-      {/* {data.message} */}
+
       <div
         style={{ border: "4px solid pink", padding: "20px", margin: "10px" }}
       >
         <Outlet />
       </div>
-      {/* display the child route page here as well as the settings page above */}
     </div>
   );
 }
