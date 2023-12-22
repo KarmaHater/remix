@@ -16,8 +16,10 @@ import {
   createShelf,
   deleteShelf,
   saveShelf,
-} from "../../modals/pantry-shelf.server";
-import { SearchIcon, PlusIcon, SaveIcon } from "~/icons";
+} from "~/modals/pantry-shelf.server";
+import { createShelfItem, deleteShelfItem } from "~/modals/pantry-item.server";
+
+import { SearchIcon, PlusIcon, SaveIcon, TrashIcon } from "~/icons";
 import classNames from "classnames";
 import { DeleteButton, PrimaryButton } from "~/components/forms";
 import { formValidation } from "~/utils/validation";
@@ -34,12 +36,21 @@ export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
 
   const saveShelfNameSchema = z.object({
-    shelfName: z.string().min(1),
+    shelfName: z.string().min(1, "shelf name is required"),
     shelfId: z.string(),
   });
 
   const deleteShelfSchema = z.object({
     shelfId: z.string(),
+  });
+
+  const createShelfItemSchema = z.object({
+    shelfId: z.string(),
+    itemName: z.string().min(1, "item name is required"),
+  });
+
+  const deleteShelfItemSchema = z.object({
+    itemId: z.string(),
   });
 
   switch (formData.get("_action")) {
@@ -48,7 +59,7 @@ export const action: ActionFunction = async ({ request }) => {
         formData,
         deleteShelfSchema,
         (data) => deleteShelf(data.shelfId),
-        (errors) => json({ errors })
+        (errors) => json({ errors }, { status: 400 })
       );
     }
     case "createShelf":
@@ -58,7 +69,23 @@ export const action: ActionFunction = async ({ request }) => {
         formData,
         saveShelfNameSchema,
         (data) => saveShelf(data.shelfId, data.shelfName),
-        (errors) => json({ errors })
+        (errors) => json({ errors }, { status: 400 })
+      );
+    }
+    case "createShelfItem": {
+      return formValidation(
+        formData,
+        createShelfItemSchema,
+        (data) => createShelfItem(data.shelfId, data.itemName),
+        (errors) => json({ errors }, { status: 400 })
+      );
+    }
+    case "deleteShelfItem": {
+      return formValidation(
+        formData,
+        deleteShelfItemSchema,
+        (data) => deleteShelfItem(data.itemId),
+        (errors) => json({ errors }, { status: 400 })
       );
     }
   }
@@ -129,11 +156,10 @@ type ShelfProps = {
 export function Shelf({ shelf }: ShelfProps) {
   const deleteShelfFetcher = useFetcher();
   const saveShelfFetcher = useFetcher();
+  const createShelfItemFetcher = useFetcher();
   const isDeleteShelf =
     deleteShelfFetcher.formData?.get("_action") === "deleteShelf" &&
     deleteShelfFetcher.formData?.get("shelfId") === shelf.id;
-
-  console.log(deleteShelfFetcher.formData);
 
   return (
     <li
@@ -143,33 +169,62 @@ export function Shelf({ shelf }: ShelfProps) {
         "flex-none h-fit"
       )}
     >
-      <saveShelfFetcher.Form
-        reloadDocument
-        method="post"
-        placeholder="Shelf Name"
-        autoComplete="off"
-        className="flex"
-      >
-        <input
-          type="text"
-          name="shelfName"
-          defaultValue={shelf.name}
-          className={classNames(
-            "text-2xl font-extrabold mb-2 w-full outline-none m-l-4",
-            "border-b-2 border-b-background focus:border-b-primary"
-          )}
-        />
+      <saveShelfFetcher.Form method="post" autoComplete="off" className="flex">
+        <div className="w-full mb-2">
+          <input
+            type="text"
+            name="shelfName"
+            placeholder="Shelf Name"
+            defaultValue={shelf.name}
+            className={classNames(
+              "text-2xl  mb-2 font-extrabold w-full outline-none m-l-4",
+              "border-b-2 border-b-background focus:border-b-primary",
+              saveShelfFetcher.data?.errors?.shelfName ? "border-b-red-600" : ""
+            )}
+          />
+          <div className="text-red-600 text-xs">
+            {saveShelfFetcher.data?.errors?.shelfName}
+          </div>
+        </div>
+
         <button type="submit" className="ml-2" name="_action" value="saveShelf">
           <SaveIcon />
         </button>
         <input type="hidden" name="shelfId" value={shelf.id} />
       </saveShelfFetcher.Form>
 
+      <createShelfItemFetcher.Form
+        reloadDocument
+        method="post"
+        autoComplete="off"
+        className="flex"
+      >
+        <div className="w-full mb-2">
+          <input
+            type="text"
+            name="itemName"
+            placeholder="Pantry Item Name"
+            className={classNames(
+              "mb-2  w-full outline-none m-l-4",
+              "border-b-2 border-b-background focus:border-b-primary",
+              createShelfItemFetcher.data?.errors?.itemName
+                ? "border-b-red-600"
+                : ""
+            )}
+          />
+          <ErrorMessage>
+            {createShelfItemFetcher.data?.errors?.itemName}
+          </ErrorMessage>
+        </div>
+        <input type="hidden" name="shelfId" value={shelf.id} />
+        <button type="submit" name="_action" value="createShelfItem">
+          <SaveIcon />
+        </button>
+      </createShelfItemFetcher.Form>
+
       <ul>
         {shelf.items.map((item) => (
-          <li key={item.id} className="py-2">
-            {item.name}
-          </li>
+          <ShelfItem key={item.id} item={item} />
         ))}
       </ul>
       <deleteShelfFetcher.Form className="pt-8" method="post">
@@ -185,4 +240,37 @@ export function Shelf({ shelf }: ShelfProps) {
       </deleteShelfFetcher.Form>
     </li>
   );
+}
+
+type ShelfItemProps = {
+  item: {
+    id: string;
+    name: string;
+  };
+};
+
+export function ShelfItem({ item }: ShelfItemProps) {
+  const deleteShelfItemFetcher = useFetcher();
+  return (
+    <li key={item.id} className="py-2">
+      <deleteShelfItemFetcher.Form
+        method="post"
+        className="flex"
+        reloadDocument
+      >
+        <p className="w-full">{item.name}</p>
+        <input type="hidden" name="itemId" value={item.id} />
+        <ErrorMessage>
+          {deleteShelfItemFetcher.data?.errors?.itemId}
+        </ErrorMessage>
+        <button name="_action" value="deleteShelfItem">
+          <TrashIcon />
+        </button>
+      </deleteShelfItemFetcher.Form>
+    </li>
+  );
+}
+
+export function ErrorMessage({ children }: { children: string }) {
+  return <div className="text-red-600 text-xs">{children}</div>;
 }
