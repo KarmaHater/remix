@@ -9,14 +9,12 @@ export function formValidation<T>(
   errorCallback: (errors: TFieldErrors) => unknown
 ) {
   const result = zodSchema.safeParse(Object.fromEntries(formData));
-
   if (!result.success) {
     const errors: TFieldErrors = {};
     result.error.issues.forEach((issue) => {
       const path = issue.path.join(".");
       errors[path] = issue.message;
     });
-
     return errorCallback(errors);
   }
 

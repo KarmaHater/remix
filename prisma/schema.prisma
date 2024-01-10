@@ -10,19 +10,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firstName      String
+  lastName      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pantryShelves PantryShelf[]
+  pantryItems PantryItem[]
+}
+
+
 model PantryShelf {
   id        String   @id @default(cuid())
   name      String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   items     PantryItem[]
+
+  userId    String
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PantryItem {
   id        String   @id @default(cuid())
-  shelfId  String
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  userId    String
+  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  shelfId  String
   shelf     PantryShelf @relation(fields: [shelfId], references: [id], onDelete: Cascade)
 }

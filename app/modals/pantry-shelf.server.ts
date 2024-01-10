@@ -40,7 +40,8 @@ export function deleteShelf(shelfId: string) {
   );
 }
 
-export function saveShelf(shelfId: string, shelfName: string) {
+export function saveNameShelf(shelfId: string, shelfName: string) {
+  console.log(shelfId, shelfName, "HERE");
   return db.pantryShelf.update({
     where: {
       id: shelfId,
