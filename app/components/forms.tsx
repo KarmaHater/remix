@@ -58,3 +58,20 @@ export function DeleteButton({
     />
   );
 }
+
+interface PrimaryInputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {}
+
+export function PrimaryInput({ className, ...props }: PrimaryInputProps) {
+  return (
+    <input
+      type="text"
+      {...props}
+      className={classNames(
+        "w-full outline-none border-2 border-gray-200",
+        "focus:border-primary rounded-md p-2",
+        className
+      )}
+    />
+  );
+}

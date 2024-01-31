@@ -4,7 +4,7 @@ import { type LoaderFunction } from "@remix-run/node";
 import { type ActionFunction, json, useActionData } from "react-router";
 import { v4 as uuid } from "uuid";
 import { ErrorMessage } from "./app/pantry";
-import { PrimaryButton } from "~/components/forms";
+import { PrimaryButton, PrimaryInput } from "~/components/forms";
 import { formValidation } from "~/utils/validation";
 import { getUser } from "~/modals/user.server";
 // import { sessionCookie } from "~/cookies";
@@ -68,16 +68,13 @@ export default function Login() {
       <h1 className="text-3xl mb-8">Remix Recipes</h1>
       <form className="mx-auto md:w-1/3" method="post">
         <div className="text-left pb-2">
-          <input
+          <PrimaryInput
             type="email"
             name="email"
             placeholder="Email"
             defaultValue={actionData?.email}
-            className={classNames(
-              "w-full outline-none border-2 border-gray-200",
-              "focus:border-primary rounded-md p-2"
-            )}
           />
+
           <ErrorMessage>{actionData?.errors?.email}</ErrorMessage>
         </div>
         <PrimaryButton type="submit" className="w-1/3 mx-auto">
