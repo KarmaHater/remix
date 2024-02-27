@@ -1,4 +1,3 @@
-import classNames from "classnames";
 import z from "zod";
 import { type LoaderFunction } from "@remix-run/node";
 import { type ActionFunction, json, useActionData } from "react-router";
@@ -6,51 +5,30 @@ import { v4 as uuid } from "uuid";
 import { ErrorMessage } from "./app/pantry";
 import { PrimaryButton, PrimaryInput } from "~/components/forms";
 import { formValidation } from "~/utils/validation";
-import { getUser } from "~/modals/user.server";
 // import { sessionCookie } from "~/cookies";
-import { commitSession, getSession } from "~/session";
+import { getSession } from "~/session";
 import { generateMagicLink } from "~/magic-links.server";
+import { requireLoggedOutUser } from "~/utils/auth.server";
 
 const loginSchema = z.object({
   email: z.string().email(),
 });
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const cookieHeader = request.headers.get("cookie");
-  const session = await getSession(cookieHeader);
+  await requireLoggedOutUser(request);
 
-  commitSession(session);
-
-  console.log(session.data, "session");
   return null;
 };
 
 export const action: ActionFunction = async ({ request }) => {
-  const cookieHeader = request.headers.get("cookie");
-  const session = await getSession(cookieHeader);
+  await requireLoggedOutUser(request);
+
   const formData = await request.formData();
 
   return formValidation(
     formData,
     loginSchema,
     async ({ email }) => {
-      // example with sessions in remix
-      // const user = await getUser(email);
-      // if (user === null) {
-      //   return json(
-      //     { email: `${email} User not found; HttpOnly; Secure` },
-      //     { status: 400 }
-      //   );
-      // }
-      // session.set("userId", user.id);
-      // return json(
-      //   { email },
-      //   {
-      //     headers: {
-      //       "Set-Cookie": await commitSession(session),
-      //     },
-      //   }
-      // );
       const nonce = uuid();
       const link = generateMagicLink(email, nonce);
       console.log(link, "link");

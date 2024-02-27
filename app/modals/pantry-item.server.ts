@@ -1,9 +1,14 @@
 import db from "../db.server";
 import { handleDelete } from "./utils.server";
 
-export function createShelfItem(shelfId: string, itemName: string) {
+export function createShelfItem(
+  userId: string,
+  shelfId: string,
+  itemName: string
+) {
   return db.pantryItem.create({
     data: {
+      userId,
       name: itemName,
       shelfId,
     },
@@ -18,4 +23,12 @@ export function deleteShelfItem(id: string) {
       },
     })
   );
+}
+
+export const getShelfItems = (shelfId: string) =>{
+  return db.pantryItem.findMany({
+    where: {
+      shelfId,
+    },
+  });
 }

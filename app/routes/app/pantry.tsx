@@ -17,6 +17,7 @@ import {
   createShelf,
   deleteShelf,
   saveNameShelf,
+  getShelf,
 } from "~/modals/pantry-shelf.server";
 import { createShelfItem, deleteShelfItem } from "~/modals/pantry-item.server";
 
@@ -25,16 +26,22 @@ import classNames from "classnames";
 import { DeleteButton, PrimaryButton } from "~/components/forms";
 import { formValidation } from "~/utils/validation";
 import { useIsHydrated, useServerLayoutEffect } from "~/utils/misc";
+import { requireLoggedInUser } from "~/utils/auth.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  const user = await requireLoggedInUser(request);
+  console.log(user, "USER");
+
   const url = new URL(request.url);
   const q = url.searchParams.get("q");
 
-  const shelves = await getAllShelves(q);
+  const shelves = await getAllShelves(user.id, q);
   return json({ shelves });
 }
 
 export const action: ActionFunction = async ({ request }) => {
+  const user = await requireLoggedInUser(request);
+
   const formData = await request.formData();
 
   const saveShelfNameSchema = z.object({
@@ -60,17 +67,35 @@ export const action: ActionFunction = async ({ request }) => {
       return formValidation(
         formData,
         deleteShelfSchema,
-        (data) => deleteShelf(data.shelfId),
+        async (data) => {
+          const shelf = await getShelf(data.shelfId);
+
+          if (shelf !== null && shelf.userId !== user.id) {
+            throw json("You do not have permission to delete this shelf", {
+              status: 401,
+            });
+          }
+          return deleteShelf(data.shelfId);
+        },
         (errors) => json({ errors }, { status: 400 })
       );
     }
     case "createShelf":
-      return createShelf();
+      return createShelf(user.id);
     case "saveNameShelf": {
       return formValidation(
         formData,
         saveShelfNameSchema,
-        (data) => saveNameShelf(data.shelfId, data.shelfName),
+        async (data) => {
+          const shelf = await getShelf(data.shelfId);
+
+          if (shelf !== null && shelf.userId !== user.id) {
+            throw json("You do not have permission to edit this shelf", {
+              status: 401,
+            });
+          }
+          return saveNameShelf(data.shelfId, data.shelfName);
+        },
         (errors) => json({ errors }, { status: 400 })
       );
     }
@@ -78,7 +103,7 @@ export const action: ActionFunction = async ({ request }) => {
       return formValidation(
         formData,
         createShelfItemSchema,
-        (data) => createShelfItem(data.shelfId, data.itemName),
+        (data) => createShelfItem(user.id, data.shelfId, data.itemName),
         (errors) => json({ errors }, { status: 400 })
       );
     }
@@ -86,7 +111,17 @@ export const action: ActionFunction = async ({ request }) => {
       return formValidation(
         formData,
         deleteShelfItemSchema,
-        (data) => deleteShelfItem(data.itemId),
+        async (data) => {
+          const shelfItem = await getShelf(data.itemId);
+
+          if (shelfItem !== null && shelfItem?.userId !== user.id) {
+            throw json("You do not have permission to delete this item", {
+              status: 401,
+            });
+          }
+
+          return deleteShelfItem(data.itemId);
+        },
         (errors) => json({ errors }, { status: 400 })
       );
     }
