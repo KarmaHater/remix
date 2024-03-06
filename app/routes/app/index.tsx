@@ -8,5 +8,5 @@ export const loader: LoaderFunction = () => {
   //     headers: { Location: "/app/pantry" },
   //   });
 
-  return redirect("/app/pantry", { status: 302 });
+  return redirect("/app/recipes", { status: 302 });
 };

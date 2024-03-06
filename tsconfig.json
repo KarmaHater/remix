@@ -5,7 +5,7 @@
     "**/*.tsx",
     "app/routes",
     "app/modals"
-  ],
+, "prisma/seed.ts"  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "isolatedModules": true,

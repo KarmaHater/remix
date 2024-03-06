@@ -6,7 +6,6 @@ import { ErrorMessage } from "./app/pantry";
 import { PrimaryButton, PrimaryInput } from "~/components/forms";
 import { formValidation } from "~/utils/validation";
 // import { sessionCookie } from "~/cookies";
-import { getSession } from "~/session";
 import { generateMagicLink } from "~/magic-links.server";
 import { requireLoggedOutUser } from "~/utils/auth.server";
 

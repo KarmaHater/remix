@@ -6,11 +6,11 @@ import {
   json,
 } from "@remix-run/node";
 import {
-  Form,
   useLoaderData,
   useNavigation,
-  useSearchParams,
   useFetcher,
+  useRouteError,
+  isRouteErrorResponse,
 } from "@remix-run/react";
 import {
   getAllShelves,
@@ -21,16 +21,15 @@ import {
 } from "~/modals/pantry-shelf.server";
 import { createShelfItem, deleteShelfItem } from "~/modals/pantry-item.server";
 
-import { SearchIcon, PlusIcon, SaveIcon, TrashIcon } from "~/icons";
+import { PlusIcon, SaveIcon, TrashIcon } from "~/icons";
 import classNames from "classnames";
-import { DeleteButton, PrimaryButton } from "~/components/forms";
+import { DeleteButton, PrimaryButton, SearchBar } from "~/components/forms";
 import { formValidation } from "~/utils/validation";
 import { useIsHydrated, useServerLayoutEffect } from "~/utils/misc";
 import { requireLoggedInUser } from "~/utils/auth.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireLoggedInUser(request);
-  console.log(user, "USER");
 
   const url = new URL(request.url);
   const q = url.searchParams.get("q");
@@ -71,9 +70,12 @@ export const action: ActionFunction = async ({ request }) => {
           const shelf = await getShelf(data.shelfId);
 
           if (shelf !== null && shelf.userId !== user.id) {
-            throw json("You do not have permission to delete this shelf", {
-              status: 401,
-            });
+            throw json(
+              { message: "You do not have permission to delete this shelf" },
+              {
+                status: 401,
+              }
+            );
           }
           return deleteShelf(data.shelfId);
         },
@@ -130,34 +132,13 @@ export const action: ActionFunction = async ({ request }) => {
 
 export default function Pantry() {
   const data = useLoaderData<typeof loader>();
-  const [searchParams] = useSearchParams();
-  const navigation = useNavigation();
-  const isSearching = navigation.formData?.has("q");
   const createShelfFetcher = useFetcher();
   const isCreatingShelf =
     createShelfFetcher.formData?.get("_action") === "createShelf";
 
   return (
     <div>
-      <Form
-        className={classNames(
-          "flex border-2 border-gray-300 rounded-md",
-          "focus-within:border-primary md:w-80",
-          isSearching ? "animate-pulse" : ""
-        )}
-      >
-        <button type="submit" className="px-2 mr-1">
-          <SearchIcon />
-        </button>
-        <input
-          type="type"
-          name="q"
-          defaultValue={searchParams.get("q") ?? ""}
-          autoComplete="off"
-          placeholder="Search shelves"
-          className="w-full py-3 px-2 outline-none"
-        />
-      </Form>
+      <SearchBar className="md:w-80" placeholder="search shelves" />
 
       <createShelfFetcher.Form method="post">
         <PrimaryButton
@@ -398,4 +379,26 @@ const createRandomId = () => Math.round(Math.random() * 1_000_000) + "";
 
 export function ErrorMessage({ children }: { children: string }) {
   return <div className="text-red-600 text-xs">{children}</div>;
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+
+  if (isRouteErrorResponse(error)) {
+    return (
+      <div className="bg-red-600 text-white rounded-md p-4">
+        <h1 className="mb-2">
+          {/* // 401 - Unauthorized */}
+          {error.status} - {error.statusText}
+        </h1>
+        <p>{error.data?.message ?? "There was an error!"}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-red-600 text-white rounded-md p-4">
+      <h1>There was an unexpected error!</h1>;
+    </div>
+  );
 }

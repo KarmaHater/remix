@@ -1,5 +1,5 @@
 import { cssBundleHref } from "@remix-run/css-bundle";
-import type { LinksFunction } from "@remix-run/node";
+import { json, type LinksFunction, type LoaderFunction } from "@remix-run/node";
 import {
   NavLink,
   Links,
@@ -12,6 +12,7 @@ import {
   useResolvedPath,
   useRouteError,
   Link,
+  useLoaderData,
 } from "@remix-run/react";
 import tailwind from "./tailwind.css";
 import {
@@ -20,8 +21,10 @@ import {
   RecipeBookIcon,
   SettingsIcon,
   LoginIcon,
+  LogoutIcon,
 } from "./icons";
 import classNames from "classnames";
+import { getCurrentUser } from "./utils/auth.server";
 
 export const links: LinksFunction = () => [
   ...(cssBundleHref
@@ -29,7 +32,18 @@ export const links: LinksFunction = () => [
     : [{ rel: "stylesheet", href: tailwind }]),
 ];
 
+export const loader: LoaderFunction = async ({
+  request,
+}: {
+  request: Request;
+}) => {
+  const user = await getCurrentUser(request);
+
+  return json({ user, isLoggedIn: !!user });
+};
+
 export default function App() {
+  const data = useLoaderData<typeof loader>();
   return (
     <html lang="en">
       <head>
@@ -52,17 +66,25 @@ export default function App() {
             <AppNavLink to="discover">
               <DiscoverIcon />
             </AppNavLink>
-            <AppNavLink to="app/pantry">
-              <RecipeBookIcon />
-            </AppNavLink>
+            {data.isLoggedIn ? (
+              <AppNavLink to="app/recipes">
+                <RecipeBookIcon />
+              </AppNavLink>
+            ) : null}
             <AppNavLink to="/settings">
               <SettingsIcon />
             </AppNavLink>
           </ul>
           <ul>
-            <AppNavLink to="/login">
-              <LoginIcon />
-            </AppNavLink>
+            {data.isLoggedIn ? (
+              <AppNavLink to="/logout">
+                <LogoutIcon />
+              </AppNavLink>
+            ) : (
+              <AppNavLink to="/login">
+                <LoginIcon />
+              </AppNavLink>
+            )}
           </ul>
         </nav>
         <div className="p-4 w-full">
