@@ -5,8 +5,7 @@ import { getMagicLinkPayload, invalidMagicLink } from "~/magic-links.server";
 import { getSession, commitSession } from "~/session";
 import { getUser } from "~/modals/user.server";
 import classNames from "classnames";
-import { PrimaryButton, PrimaryInput } from "~/components/forms";
-import { ErrorMessage } from "./app/pantry";
+import { PrimaryButton, PrimaryInput, ErrorMessage } from "~/components/forms";
 import { formValidation } from "~/utils/validation";
 
 const MAGIC_LINK_MEX_AGE = 1000 * 60 * 60 * 24 * 7; // 10 minutes

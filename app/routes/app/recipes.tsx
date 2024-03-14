@@ -4,7 +4,14 @@ import {
   redirect,
   type LoaderFunctionArgs,
 } from "@remix-run/node";
-import { Form, NavLink, Outlet, useLoaderData } from "@remix-run/react";
+import {
+  Form,
+  NavLink,
+  Outlet,
+  useLoaderData,
+  useLocation,
+  useNavigation,
+} from "@remix-run/react";
 import { PrimaryButton, SearchBar } from "~/components/forms";
 import {
   RecipeCard,
@@ -12,7 +19,7 @@ import {
   RecipeListWrapper,
   RecipePageWrapper,
 } from "~/components/recipes";
-import { PlusIcon } from "~/icons";
+import { PlusIcon } from "~/components/icons";
 import { getAllRecipes, createRecipe } from "~/modals/recipes.server";
 import { requireLoggedInUser } from "~/utils/auth.server";
 
@@ -27,13 +34,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   const user = await requireLoggedInUser(request);
-  const recipe = await createRecipe(user.id);
+  const url = new URL(request.url);
+  url.pathname = "/app/recipes";
 
-  return redirect(`/app/recipes/${recipe.id}`);
+  return redirect(url.toString());
 }
 
 export default function Recipes() {
   const data = useLoaderData<typeof loader>();
+  const location = useLocation();
+  const navigation = useNavigation();
 
   return (
     <RecipePageWrapper>
@@ -48,20 +58,27 @@ export default function Recipes() {
           </PrimaryButton>
         </Form>
         <ul>
-          {data.recipes.map((recipe) => (
-            <li className="my-4" key={recipe.id}>
-              <NavLink reloadDocument to={`/app/recipes/${recipe.id}`}>
-                {({ isActive }) => (
-                  <RecipeCard
-                    name={recipe.name}
-                    totalTime={recipe.totalTime}
-                    imageUrl={recipe.imageUrl}
-                    isActive={isActive}
-                  />
-                )}
-              </NavLink>
-            </li>
-          ))}
+          {data.recipes.map((recipe) => {
+            const isLoading = navigation.location?.pathname.endsWith(recipe.id);
+            return (
+              <li className="my-4" key={recipe.id}>
+                <NavLink
+                  to={{ pathname: recipe.id, search: location.search }}
+                  prefetch="intent"
+                >
+                  {({ isActive }) => (
+                    <RecipeCard
+                      name={recipe.name}
+                      totalTime={recipe.totalTime}
+                      imageUrl={recipe.imageUrl}
+                      isActive={isActive}
+                      isLoading={isLoading}
+                    />
+                  )}
+                </NavLink>
+              </li>
+            );
+          })}
         </ul>
       </RecipeListWrapper>
       <RecipeDetailWrapper>

@@ -1,7 +1,7 @@
 import classNames from "classnames";
 import { Form, useSearchParams } from "@remix-run/react";
 import { useNavigation } from "@remix-run/react";
-import { SearchIcon } from "~/icons";
+import { SearchIcon } from "~/components/icons";
 
 interface TButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
@@ -62,6 +62,10 @@ export function DeleteButton({
   );
 }
 
+export function ErrorMessage({ children }: { children: string }) {
+  return <div className="text-red-600 text-xs">{children}</div>;
+}
+
 interface PrimaryInputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}
 
@@ -75,6 +79,24 @@ export function PrimaryInput({ className, ...props }: PrimaryInputProps) {
         "focus:border-primary rounded-md p-2",
         className
       )}
+    />
+  );
+}
+
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  error?: boolean;
+}
+
+export function Input({ error, className, ...props }: InputProps) {
+  return (
+    <input
+      className={classNames(
+        "mb-2 w-full outline-none m-l-4",
+        "border-b-transparent border-b-2 focus:border-b-primary",
+        error ? "border-b-red-600" : "",
+        className
+      )}
+      {...props}
     />
   );
 }

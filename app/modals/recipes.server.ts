@@ -4,6 +4,7 @@ export function getAllRecipes(userId: string, q: string | null) {
   return db.recipe.findMany({
     where: { userId, name: { contains: q ?? "", mode: "insensitive" } },
     select: { id: true, name: true, totalTime: true, imageUrl: true },
+    orderBy: { createdAt: "desc" },
   });
 }
 
@@ -32,5 +33,10 @@ export function createRecipe(userId: string) {
 }
 
 export function getRecipe(id: string) {
-  return db.recipe.findUnique({ where: { id } });
+  return db.recipe.findUnique({
+    where: { id },
+    include: {
+      ingredients: { select: { name: true, amount: true, id: true } },
+    },
+  });
 }

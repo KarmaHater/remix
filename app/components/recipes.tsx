@@ -1,7 +1,7 @@
 import { useParams } from "@remix-run/react";
 import React from "react";
 import classNames from "classnames";
-import { TimeIcon } from "~/icons";
+import { TimeIcon } from "~/components/icons";
 
 type RecipePageWrapperProps = {
   children: React.ReactNode;

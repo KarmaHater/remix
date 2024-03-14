@@ -7,7 +7,6 @@ import {
 } from "@remix-run/node";
 import {
   useLoaderData,
-  useNavigation,
   useFetcher,
   useRouteError,
   isRouteErrorResponse,
@@ -20,13 +19,18 @@ import {
   getShelf,
 } from "~/modals/pantry-shelf.server";
 import { createShelfItem, deleteShelfItem } from "~/modals/pantry-item.server";
-
-import { PlusIcon, SaveIcon, TrashIcon } from "~/icons";
 import classNames from "classnames";
-import { DeleteButton, PrimaryButton, SearchBar } from "~/components/forms";
 import { formValidation } from "~/utils/validation";
 import { useIsHydrated, useServerLayoutEffect } from "~/utils/misc";
 import { requireLoggedInUser } from "~/utils/auth.server";
+import { PlusIcon, SaveIcon, TrashIcon } from "../../components/icons";
+import {
+  Input,
+  DeleteButton,
+  PrimaryButton,
+  SearchBar,
+  ErrorMessage,
+} from "../../components/forms";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireLoggedInUser(request);
@@ -199,18 +203,13 @@ export function Shelf({ shelf }: ShelfProps) {
         className="flex"
       >
         <div className="w-full mb-2 peer">
-          <input
+          <Input
             type="text"
             name="shelfName"
             placeholder="Shelf Name"
             defaultValue={shelf.name}
-            className={classNames(
-              "text-2xl  mb-2 font-extrabold w-full outline-none m-l-4",
-              "border-b-2 border-b-background focus:border-b-primary",
-              saveNameShelfFetcher.data?.errors?.shelfName
-                ? "border-b-red-600"
-                : ""
-            )}
+            className={classNames("text-2xl font-extrabold")}
+            error={!!saveNameShelfFetcher.data?.errors?.shelfName}
             onChange={(e) => {
               e.target.value.trim() !== "" &&
                 saveNameShelfFetcher.submit(
@@ -376,10 +375,6 @@ function useOptimisticItems(
 }
 
 const createRandomId = () => Math.round(Math.random() * 1_000_000) + "";
-
-export function ErrorMessage({ children }: { children: string }) {
-  return <div className="text-red-600 text-xs">{children}</div>;
-}
 
 export function ErrorBoundary() {
   const error = useRouteError();

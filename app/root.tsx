@@ -22,7 +22,7 @@ import {
   SettingsIcon,
   LoginIcon,
   LogoutIcon,
-} from "./icons";
+} from "./components/icons";
 import classNames from "classnames";
 import { getCurrentUser } from "./utils/auth.server";
 
