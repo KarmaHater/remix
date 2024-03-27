@@ -36,7 +36,30 @@ export function getRecipe(id: string) {
   return db.recipe.findUnique({
     where: { id },
     include: {
-      ingredients: { select: { name: true, amount: true, id: true } },
+      ingredients: {
+        select: { name: true, amount: true, id: true },
+        orderBy: { name: "asc" },
+      },
+    },
+  });
+}
+
+export function updateRecipe(id: string, data: any) {
+  return db.recipe.update({ where: { id }, data: data });
+}
+
+export function deleteRecipe(recipeId: string) {
+  return db.recipe.delete({
+    where: { id: recipeId },
+  });
+}
+
+export function createIngredient(recipeId: string, data: any) {
+  return db.ingredient.create({
+    data: {
+      recipeId,
+      amount: data.newIngredientAmount,
+      name: data.newIngredientName,
     },
   });
 }

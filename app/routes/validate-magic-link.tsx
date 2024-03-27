@@ -49,7 +49,7 @@ export const action: ActionFunction = async ({ request }) => {
   return formValidation(
     formData,
     signUpSchema,
-    (data) => redirect("/app"),
+    () => redirect("/app"),
     (errors) =>
       json(
         {

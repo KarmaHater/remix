@@ -34,8 +34,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   const user = await requireLoggedInUser(request);
+  const recipe = await createRecipe(user.id);
   const url = new URL(request.url);
-  url.pathname = "/app/recipes";
+
+  url.pathname = `/app/recipes/${recipe.id}`;
 
   return redirect(url.toString());
 }
