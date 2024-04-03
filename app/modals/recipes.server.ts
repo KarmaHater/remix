@@ -63,3 +63,7 @@ export function createIngredient(recipeId: string, data: any) {
     },
   });
 }
+
+export function deleteIngredient(ingredientId: string) {
+  return db.ingredient.delete({ where: { id: ingredientId } });
+}

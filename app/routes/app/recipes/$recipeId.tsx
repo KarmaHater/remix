@@ -8,6 +8,7 @@ import {
   updateRecipe,
   deleteRecipe,
   createIngredient,
+  deleteIngredient,
 } from "~/modals/recipes.server";
 import {
   Input,
@@ -18,13 +19,25 @@ import {
 import { SaveIcon, TimeIcon, TrashIcon } from "~/components/icons";
 import { Fragment } from "react";
 import { handleDelete } from "~/modals/utils.server";
+import { requireLoggedInUser } from "~/utils/auth.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
+  const user = await requireLoggedInUser(request);
+
   if (params.recipeId === undefined) {
     throw Error("Recipe ID is required");
   }
 
   const recipe = await getRecipe(params.recipeId);
+
+  if (!recipe) {
+    throw json("Not Found", { status: 404 });
+  }
+
+  if (recipe.userId !== user?.id) {
+    throw json("Unauthorized", { status: 401 });
+  }
+
   return json({ recipe }, { headers: { "Cache-Control": "max-age=10" } });
 }
 
@@ -54,13 +67,21 @@ const createIngredientSchema = z.object({
 });
 
 export async function action({ request, params }: LoaderFunctionArgs) {
+  const user = await requireLoggedInUser(request);
+
   if (params.recipeId === undefined) {
     throw Error("Recipe ID is required");
   }
 
   const formData = await request.formData();
+  const _action = formData.get("_action");
 
-  switch (formData.get("_action")) {
+  if (typeof _action === "string" && _action.includes("deleteIngredient")) {
+    const ingredientId = _action.split(".")[1];
+    await handleDelete(() => deleteIngredient(ingredientId));
+  }
+
+  switch (_action) {
     case "saveRecipe":
       return formValidation(
         formData,
@@ -86,6 +107,9 @@ export async function action({ request, params }: LoaderFunctionArgs) {
         },
         (errors) => json({ errors }, { status: 400 })
       );
+    case "deleteRecipe":
+      await handleDelete(() => deleteRecipe(params.recipeId));
+      return redirect("/app/recipes");
     case "createIngredient":
       return formValidation(
         formData,
@@ -97,9 +121,6 @@ export async function action({ request, params }: LoaderFunctionArgs) {
         },
         (errors) => json({ errors }, { status: 400 })
       );
-    case "deleteRecipe":
-      await handleDelete(() => deleteRecipe(params.recipeId));
-      return redirect("/app/recipes");
     default: {
       return json({});
     }
@@ -169,7 +190,7 @@ export default function RecipeDetails() {
                 {actionData?.errors?.[`ingredientAmounts.${name}`]}
               </ErrorMessage>
             </div>
-            <button type="button">
+            <button name="_action" value={`deleteIngredient.${ingredient.id}`}>
               <TrashIcon />
             </button>
           </Fragment>
