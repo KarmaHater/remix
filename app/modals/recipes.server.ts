@@ -48,6 +48,14 @@ export function updateRecipe(id: string, data: any) {
   return db.recipe.update({ where: { id }, data: data });
 }
 
+export function updateRecipeName(id: string, name: string) {
+  return db.recipe.update({ where: { id }, data: { name } });
+}
+
+export function updateRecipeTotalTime(id: string, totalTime: string) {
+  return db.recipe.update({ where: { id }, data: { totalTime } });
+}
+
 export function deleteRecipe(recipeId: string) {
   return db.recipe.delete({
     where: { id: recipeId },
@@ -66,4 +74,18 @@ export function createIngredient(recipeId: string, data: any) {
 
 export function deleteIngredient(ingredientId: string) {
   return db.ingredient.delete({ where: { id: ingredientId } });
+}
+
+export function updateIngredientAmount(ingredientId: string, amount: string) {
+  return db.ingredient.update({
+    where: { id: ingredientId },
+    data: { amount },
+  });
+}
+
+export function updateIngredientName(ingredientId: string, name: string) {
+  return db.ingredient.update({
+    where: { id: ingredientId },
+    data: { name },
+  });
 }

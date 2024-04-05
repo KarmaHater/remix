@@ -28,7 +28,6 @@ export function formValidation<T>(
   const fields = objectifyFormData(formData);
   const result = zodSchema.safeParse(fields);
 
-  console.log(fields, "fields");
   console.log(result, "result");
 
   if (!result.success) {
