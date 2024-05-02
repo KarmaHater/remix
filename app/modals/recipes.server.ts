@@ -17,16 +17,7 @@ export function createRecipe(userId: string) {
       imageUrl: "https://via.placeholder.com/150?text=Remix+Recipes",
       instructions: "",
       ingredients: {
-        create: [
-          { amount: "1 tsp", name: "salt" },
-          { amount: "2 tsp", name: "baking powder" },
-          { amount: "1 tsp", name: "baking soda" },
-          { amount: "2 cups", name: "flour" },
-          { amount: "2 tbsp", name: "sugar" },
-          { amount: "2", name: "eggs" },
-          { amount: "2 cups", name: "buttermilk" },
-          { amount: "2 tbsp", name: "butter, melted" },
-        ],
+        create: [],
       },
     },
   });

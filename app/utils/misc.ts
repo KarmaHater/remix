@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 export function isRunningOnServer() {
   return typeof window === "undefined";
@@ -18,4 +18,19 @@ export function useIsHydrated() {
   }, []);
 
   return isHydrated;
+}
+
+export function useDebounce<T extends Array<any>>(
+  fn: (...arg: T) => unknown,
+  time: number
+) {
+  const timeoutId = useRef<number>();
+
+  const debouncedFn = (...args: T) => {
+    window.clearTimeout(timeoutId.current);
+    timeoutId.current = window.setTimeout(() => {
+      fn(...args);
+    }, time);
+  };
+  return debouncedFn;
 }

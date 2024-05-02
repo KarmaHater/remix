@@ -1,9 +1,11 @@
-import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node";
+import { json, redirect, unstable_composeUploadHandlers, unstable_createFileUploadHandler, unstable_createMemoryUploadHandler, unstable_parseMultipartFormData, type LoaderFunctionArgs } from "@remix-run/node";
+import React, { Fragment, useRef, useState } from "react";
 import {
   Form,
   useLoaderData,
   useActionData,
   useFetcher,
+  Outlet,
 } from "@remix-run/react";
 import classNames from "classnames";
 import z from "zod";
@@ -26,9 +28,9 @@ import {
   PrimaryButton,
 } from "~/components/forms";
 import { SaveIcon, TimeIcon, TrashIcon } from "~/components/icons";
-import { Fragment } from "react";
 import { handleDelete } from "~/modals/utils.server";
 import { requireLoggedInUser } from "~/utils/auth.server";
+import { useDebounce } from "~/utils/misc";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const user = await requireLoggedInUser(request);
@@ -81,6 +83,7 @@ const ingredientNameSchema = z.object({
 
 const recipeSchema = z
   .object({
+    imageUrl: z.string().optional(),
     instructions: z.string().min(1, "Instructions can not be empty").optional(),
     ingredientIds: z.array(ingredientId).optional(),
     ingredientAmounts: z.array(ingredientAmount).optional(),
@@ -118,7 +121,20 @@ export async function action({ request, params }: LoaderFunctionArgs) {
     throw json("Unauthorized to make changes on this recipe", { status: 401 });
   }
 
-  const formData = await request.formData();
+  let formData = null
+  if (request.headers.get("Content-Type")?.includes("multipart/form-data")) {
+    const uploadHandler = unstable_composeUploadHandlers(unstable_createFileUploadHandler({ directory: "public/images" }), unstable_createMemoryUploadHandler()
+    )
+    formData = await unstable_parseMultipartFormData(request, uploadHandler);
+    const image = formData.get("_image") as File;
+    if (image.size !== 0) {
+      formData.set("imageUrl", `images/${image.name}`)
+    }
+  } else {
+    formData = await request.formData();
+  }
+
+
   const _action = formData.get("_action");
 
   if (typeof _action === "string" && _action.includes("deleteIngredient")) {
@@ -155,17 +171,6 @@ export async function action({ request, params }: LoaderFunctionArgs) {
     case "deleteRecipe":
       await handleDelete(() => deleteRecipe(params.recipeId));
       return redirect("/app/recipes");
-    case "createIngredient":
-      return formValidation(
-        formData,
-        createIngredientSchema,
-        async (data) => {
-          return createIngredient(params.recipeId, {
-            ...data,
-          });
-        },
-        (errors) => json({ errors }, { status: 400 })
-      );
     case "saveName":
       return formValidation(
         formData,
@@ -179,6 +184,18 @@ export async function action({ request, params }: LoaderFunctionArgs) {
         totalTimeSchema,
         async ({ totalTime }) => {
           return updateRecipeTotalTime(params.recipeId, totalTime);
+        },
+        (errors) => json({ errors }, { status: 400 })
+      );
+    case "createIngredient":
+      console.log(formData, "formData");
+      return formValidation(
+        formData,
+        createIngredientSchema,
+        async (data) => {
+          return createIngredient(params.recipeId, {
+            ...data,
+          });
         },
         (errors) => json({ errors }, { status: 400 })
       );
@@ -207,153 +224,211 @@ export async function action({ request, params }: LoaderFunctionArgs) {
 }
 
 export default function RecipeDetails() {
+  const newIngredientAmountRef = useRef<HTMLInputElement>(null);
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const saveNameFetch = useFetcher();
-  const saveTotalTimeFetch = useFetcher();
-  const saveFetchInstructions = useFetcher();
+  const saveNameFetcher = useFetcher();
+  const saveTotalTimeFetcher = useFetcher();
+  const saveInstructionsFetcher = useFetcher();
+  const createIngredientFetcher = useFetcher();
 
-  const saveName = (name: string) =>
-    saveNameFetch.submit(
+  const [createIngredientForm, setCreateIngredientForm] = useState({ name: "", amount: "" })
+
+  const saveName = useDebounce(
+    (name: string) =>
+      saveNameFetcher.submit(
+        {
+          _action: "saveName",
+          name,
+        },
+        { method: "post" }
+      ),
+    1000
+  );
+
+  const saveTotalTime = useDebounce(
+    (totalTime: string) =>
+      saveTotalTimeFetcher.submit(
+        {
+          _action: "saveTotalTime",
+          totalTime,
+        },
+        { method: "post" }
+      ),
+    1000
+  );
+
+  const saveInstructions = useDebounce(
+    (instructions: string) =>
+      saveInstructionsFetcher.submit(
+        { instructions, _action: "saveInstructions" },
+        { method: "post" }
+      ),
+    1000
+  );
+
+  const createIngredient = () => {
+    createIngredientFetcher.submit(
       {
-        _action: "saveName",
-        name,
+        _action: "createIngredient",
+        newIngredientName: createIngredientForm.name,
+        newIngredientAmount: createIngredientForm.amount
       },
       { method: "post" }
     );
+    setCreateIngredientForm({ name: "", amount: "" })
+    newIngredientAmountRef.current?.focus();
+  }
 
-  const saveTotalTime = (totalTime: string) =>
-    saveTotalTimeFetch.submit(
-      {
-        _action: "saveTotalTime",
-        totalTime,
-      },
-      { method: "post" }
-    );
-
-  const saveInstructions = (instructions: string) =>
-    saveFetchInstructions.submit(
-      { instructions, _action: "saveInstructions" },
-      { method: "post" }
-    );
 
   return (
-    <Form method="post">
-      <div className="mb-2">
-        <Input
-          key={data.recipe?.id}
-          type="text"
-          placeholder="Name"
-          autoComplete="off"
-          name="name"
-          className="text-2xl font-extrabold"
-          defaultValue={data.recipe?.name}
-          onChange={(e) => saveName(e.target.value)}
-          error={
-            !!(saveNameFetch?.data?.errors?.name || actionData?.errors?.name)
-          }
-        />
-        <ErrorMessage>
-          {actionData?.errors?.name || saveNameFetch?.data?.errors?.name}
-        </ErrorMessage>
-      </div>
-
-      <div className="flex">
-        <TimeIcon />
-        <div className="ml-2 flex-grow">
+    <><Outlet />
+      <Form method="post" encType="multipart/form-data">
+        <button name="_action" value="saveRecipe" className="hidden"></button>
+        <div className="mb-2">
           <Input
             key={data.recipe?.id}
             type="text"
-            placeholder="Time"
+            placeholder="Name"
             autoComplete="off"
-            name="totalTime"
-            defaultValue={data.recipe?.totalTime}
-            onChange={(e) => saveTotalTime(e.target.value)}
+            name="name"
+            className="text-2xl font-extrabold"
+            defaultValue={data.recipe?.name}
+            onChange={(e) => saveName(e.target.value)}
             error={
-              !!(
-                saveTotalTimeFetch?.data?.errors?.totalTime ||
-                actionData?.errors?.totalTime
-              )
+              !!(saveNameFetcher?.data?.errors?.name || actionData?.errors?.name)
             }
           />
           <ErrorMessage>
-            {saveTotalTimeFetch?.data?.errors?.totalTime ||
-              actionData?.errors?.totalTime}
+            {actionData?.errors?.name || saveNameFetcher?.data?.errors?.name}
           </ErrorMessage>
         </div>
-      </div>
 
-      <div className="grid grid-cols-[30%_auto_min-content] my-4 gap-2">
-        <h2 className="text-sm pb-1 font-bold">Amount</h2>
-        <h2 className="text-sm pb-1 font-bold">Name</h2>
-        <div></div>
-        {data.recipe?.ingredients?.map((ingredient, index) => (
-          <Ingredient
-            key={ingredient.id}
-            id={ingredient.id}
-            name={ingredient.name}
-            amount={ingredient.amount}
-            nameError={actionData?.errors?.ingredientNames?.[index]}
-            amountError={actionData?.errors?.ingredientAmounts?.[index]}
-          />
-        ))}
-
-        <div>
-          <Input
-            type="text"
-            autoComplete="off"
-            className="border-b-gray-200 border-b-visible"
-            name="newIngredientAmount"
-            error={!!actionData?.errors?.newIngredientAmount}
-          />
-          <ErrorMessage>{actionData?.errors?.newIngredientAmount}</ErrorMessage>
+        <div className="flex">
+          <TimeIcon />
+          <div className="ml-2 flex-grow">
+            <Input
+              key={data.recipe?.id}
+              type="text"
+              placeholder="Time"
+              autoComplete="off"
+              name="totalTime"
+              defaultValue={data.recipe?.totalTime}
+              onChange={(e) => saveTotalTime(e.target.value)}
+              error={
+                !!(
+                  saveTotalTimeFetcher?.data?.errors?.totalTime ||
+                  actionData?.errors?.totalTime
+                )
+              }
+            />
+            <ErrorMessage>
+              {saveTotalTimeFetcher?.data?.errors?.totalTime ||
+                actionData?.errors?.totalTime}
+            </ErrorMessage>
+          </div>
         </div>
-        <div>
-          <Input
-            type="text"
-            autoComplete="off"
-            className="outline-b-gray-200"
-            name="newIngredientName"
-            error={!!actionData?.errors?.newIngredientName}
-          />
-          <ErrorMessage>{actionData?.errors?.newIngredientName}</ErrorMessage>
+
+        <div className="grid grid-cols-[30%_auto_min-content] my-4 gap-2">
+          <h2 className="text-sm pb-1 font-bold">Amount</h2>
+          <h2 className="text-sm pb-1 font-bold">Name</h2>
+          <div></div>
+          {data.recipe?.ingredients?.map((ingredient, index) => (
+            <Ingredient
+              key={ingredient.id}
+              id={ingredient.id}
+              name={ingredient.name}
+              amount={ingredient.amount}
+              nameError={actionData?.errors?.ingredientNames?.[index]}
+              amountError={actionData?.errors?.ingredientAmounts?.[index]}
+            />
+          ))}
+
+          <div>
+            <Input
+              type="text"
+              autoComplete="off"
+              className="border-b-gray-200 border-b-visible"
+              name="newIngredientAmount"
+              ref={newIngredientAmountRef}
+              error={!!actionData?.errors?.newIngredientAmount}
+              value={createIngredientForm.amount}
+              onChange={(e) => setCreateIngredientForm({
+                ...createIngredientForm, amount: e.target.value
+              })}
+              onKeyDown={(e) => {
+                if (e.key == "Enter") {
+                  e.preventDefault()
+                  createIngredient();
+                }
+              }}
+            />
+            <ErrorMessage>{createIngredientFetcher.data?.errors?.newIngredientAmount || actionData?.errors?.newIngredientAmount}</ErrorMessage>
+          </div>
+          <div>
+            <Input
+              type="text"
+              autoComplete="off"
+              className="border-b-gray-200 border-b-visible"
+              name="newIngredientName"
+              error={!!actionData?.errors?.newIngredientName}
+              value={createIngredientForm.name}
+              onChange={(e) => setCreateIngredientForm({
+                ...createIngredientForm, name: e.target.value
+              })}
+              onKeyDown={(e) => {
+                if (e.key == "Enter") {
+                  e.preventDefault()
+                  createIngredient();
+                }
+              }}
+            />
+            <ErrorMessage>{createIngredientFetcher.data?.errors?.newIngredientName || actionData?.errors?.newIngredientName}</ErrorMessage>
+          </div>
+
+          <button name="_action" value="createIngredient" onClick={(e) => {
+            createIngredient();
+            e.preventDefault();
+          }}>
+            <SaveIcon />
+          </button>
         </div>
-        <button name="_action" value="createIngredient">
-          <SaveIcon />
-        </button>
-      </div>
 
-      <label htmlFor="instructions" className="block font-bold text-sm w-fit">
-        Instructions
-      </label>
-      <textarea
-        key={data.recipe?.id}
-        id="instructions"
-        name="instructions"
-        placeholder="instructions go here"
-        defaultValue={data.recipe?.instructions}
-        className={classNames(
-          "w-full h-56 rounded-md outline-none",
-          "focus:border-2 focus:p-3 focus:border-primary duration-300"
-        )}
-        onChange={(e) => saveInstructions(e.target.value)}
-      />
-      <ErrorMessage>
-        {saveFetchInstructions?.data?.errors?.instructions ||
-          actionData?.errors?.instructions}
-      </ErrorMessage>
+        <label htmlFor="instructions" className="block font-bold text-sm w-fit">
+          Instructions
+        </label>
+        <textarea
+          key={data.recipe?.id}
+          id="instructions"
+          name="instructions"
+          placeholder="instructions go here"
+          defaultValue={data.recipe?.instructions}
+          className={classNames(
+            "w-full h-56 rounded-md outline-none",
+            "focus:border-2 focus:p-3 focus:border-primary duration-300"
+          )}
+          onChange={(e) => saveInstructions(e.target.value)}
+        />
+        <ErrorMessage>
+          {saveInstructionsFetcher?.data?.errors?.instructions ||
+            actionData?.errors?.instructions}
+        </ErrorMessage>
 
-      <hr className="my-4" />
-      <div className="flex justify-between">
-        <DeleteButton name="_action" value="deleteRecipe">
-          Delete this Recipe
-        </DeleteButton>
+        <label htmlFor="image" className="block font-bold text-sm pb-2 w-fit mt-4">Image</label>
+        <input id="image" type="file" name="_image" key={`${data.recipe?.id}.image`} />
 
-        <PrimaryButton name="_action" value="saveRecipe">
-          <div className="flex flex-col justify-center h-full">Save</div>
-        </PrimaryButton>
-      </div>
-    </Form>
+        <hr className="my-4" />
+        <div className="flex justify-between">
+          <DeleteButton name="_action" value="deleteRecipe">
+            Delete this Recipe
+          </DeleteButton>
+
+          <PrimaryButton name="_action" value="saveRecipe">
+            <div className="flex flex-col justify-center h-full">Save</div>
+          </PrimaryButton>
+        </div>
+      </Form>
+    </>
   );
 }
 
