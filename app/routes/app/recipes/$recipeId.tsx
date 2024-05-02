@@ -1,4 +1,4 @@
-import { json, redirect, unstable_composeUploadHandlers, unstable_createFileUploadHandler, unstable_createMemoryUploadHandler, unstable_parseMultipartFormData, type LoaderFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs, json, redirect, unstable_composeUploadHandlers, unstable_createFileUploadHandler, unstable_createMemoryUploadHandler, unstable_parseMultipartFormData, type LoaderFunctionArgs } from "@remix-run/node";
 import React, { Fragment, useRef, useState } from "react";
 import {
   Form,
@@ -6,6 +6,8 @@ import {
   useActionData,
   useFetcher,
   Outlet,
+  Link,
+  useOutletContext,
 } from "@remix-run/react";
 import classNames from "classnames";
 import z from "zod";
@@ -27,10 +29,11 @@ import {
   DeleteButton,
   PrimaryButton,
 } from "~/components/forms";
-import { SaveIcon, TimeIcon, TrashIcon } from "~/components/icons";
+import { CalendarIcon, SaveIcon, TimeIcon, TrashIcon } from "~/components/icons";
 import { handleDelete } from "~/modals/utils.server";
 import { requireLoggedInUser } from "~/utils/auth.server";
 import { useDebounce } from "~/utils/misc";
+import { canChangeRecipe } from "~/utils/abilities.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const user = await requireLoggedInUser(request);
@@ -104,22 +107,9 @@ const createIngredientSchema = z.object({
   newIngredientName: z.string().min(1, "Name can not be empty"),
 });
 
-export async function action({ request, params }: LoaderFunctionArgs) {
-  const user = await requireLoggedInUser(request);
-
-  if (params.recipeId === undefined) {
-    throw Error("Recipe ID is required");
-  }
-
-  const recipe = await getRecipe(params.recipeId);
-
-  if (!recipe) {
-    throw json("RecipeNot Found ", { status: 404 });
-  }
-
-  if (recipe.userId !== user?.id) {
-    throw json("Unauthorized to make changes on this recipe", { status: 401 });
-  }
+export async function action({ request, params }: ActionFunctionArgs) {
+  const recipeId = String(params.recipeId);
+  await canChangeRecipe(request, recipeId)
 
   let formData = null
   if (request.headers.get("Content-Type")?.includes("multipart/form-data")) {
@@ -222,6 +212,12 @@ export async function action({ request, params }: LoaderFunctionArgs) {
     }
   }
 }
+export function useRecipeContext() {
+  return useOutletContext<{
+    recipeName?: string,
+    mealPlanMultiplier?: null | null
+  }>()
+}
 
 export default function RecipeDetails() {
   const newIngredientAmountRef = useRef<HTMLInputElement>(null);
@@ -280,28 +276,37 @@ export default function RecipeDetails() {
     newIngredientAmountRef.current?.focus();
   }
 
-
   return (
-    <><Outlet />
+    <>
+      <Outlet
+        context={{
+          recipeName: data.recipe?.name,
+          mealPlanMultiplier: data.recipe?.mealPlanMultiplier,
+        }}
+      />
       <Form method="post" encType="multipart/form-data">
         <button name="_action" value="saveRecipe" className="hidden"></button>
-        <div className="mb-2">
-          <Input
-            key={data.recipe?.id}
-            type="text"
-            placeholder="Name"
-            autoComplete="off"
-            name="name"
-            className="text-2xl font-extrabold"
-            defaultValue={data.recipe?.name}
-            onChange={(e) => saveName(e.target.value)}
-            error={
-              !!(saveNameFetcher?.data?.errors?.name || actionData?.errors?.name)
-            }
-          />
-          <ErrorMessage>
-            {actionData?.errors?.name || saveNameFetcher?.data?.errors?.name}
-          </ErrorMessage>
+        <div className="flex mb-2">
+          <Link to="update-meal-plan" className="flex flex-col justify-center" replace><CalendarIcon /></Link>
+          <div className="ml-2 flex-grow">
+            <Input
+              key={data.recipe?.id}
+              type="text"
+              placeholder="Name"
+              autoComplete="off"
+              name="name"
+              className="text-2xl font-extrabold"
+              defaultValue={data.recipe?.name}
+              onChange={(e) => saveName(e.target.value)}
+              error={
+                !!(saveNameFetcher?.data?.errors?.name || actionData?.errors?.name)
+              }
+            />
+
+            <ErrorMessage>
+              {actionData?.errors?.name || saveNameFetcher?.data?.errors?.name}
+            </ErrorMessage>
+          </div>
         </div>
 
         <div className="flex">
