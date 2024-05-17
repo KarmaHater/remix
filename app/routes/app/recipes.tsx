@@ -6,12 +6,14 @@ import {
 } from "@remix-run/node";
 import {
   Form,
+  Link,
   NavLink,
   Outlet,
   useFetchers,
   useLoaderData,
   useLocation,
   useNavigation,
+  useSearchParams,
 } from "@remix-run/react";
 import { PrimaryButton, SearchBar } from "~/components/forms";
 import {
@@ -20,15 +22,18 @@ import {
   RecipeListWrapper,
   RecipePageWrapper,
 } from "~/components/recipes";
-import { PlusIcon } from "~/components/icons";
+import { CalendarIcon, PlusIcon } from "~/components/icons";
 import { getAllRecipes, createRecipe } from "~/modals/recipes.server";
 import { requireLoggedInUser } from "~/utils/auth.server";
+import classNames from "classnames";
+import { useBuildSearchParams } from "~/utils/misc";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireLoggedInUser(request);
   const url = new URL(request.url);
   const q = url.searchParams.get("q");
-  const recipes = await getAllRecipes(user.id, q);
+  const filter = url.searchParams.get("filter") || "";
+  const recipes = await getAllRecipes(user.id, q, filter);
 
   return json({ recipes });
 }
@@ -48,11 +53,26 @@ export default function Recipes() {
   const location = useLocation();
   const navigation = useNavigation();
   const fetchers = useFetchers()
+  const [searchParams] = useSearchParams();
+  const mealPlanOnlyOn = searchParams.get("filter") === "mealPlanOnly";
+  const buildSearchParams = useBuildSearchParams();
 
   return (
     <RecipePageWrapper>
       <RecipeListWrapper>
-        <SearchBar placeholder="Search recipes" />
+        <div className="flex gap-4 ">
+          <SearchBar placeholder="Search recipes..." className="flex-grow" />
+          <Link reloadDocument to={
+            buildSearchParams('filter', mealPlanOnlyOn ? "" : "mealPlanOnly")
+          }
+            className={classNames(
+              'flex flex-col justify-center border-2 border-primary rounded-md px-2',
+              mealPlanOnlyOn ? "text-white bg-primary" : "px-2 text-primary"
+            )}
+          >
+            <CalendarIcon />
+          </Link>
+        </div>
         <Form method="post" className="mt-4" reloadDocument>
           <PrimaryButton type="submit" className="w-full">
             <div className="flex w-full justify-center">
@@ -90,6 +110,7 @@ export default function Recipes() {
                       imageUrl={recipe.imageUrl}
                       isActive={isActive}
                       isLoading={isLoading}
+                      mealPlanMultiplier={recipe.mealPlanMultiplier}
                     />
                   )}
                 </NavLink>

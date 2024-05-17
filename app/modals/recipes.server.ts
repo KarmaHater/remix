@@ -1,9 +1,14 @@
 import db from "~/db.server";
 
-export function getAllRecipes(userId: string, q: string | null) {
+export function getAllRecipes(userId: string, q: string | null, filter: string) {
   return db.recipe.findMany({
-    where: { userId, name: { contains: q ?? "", mode: "insensitive" } },
-    select: { id: true, name: true, totalTime: true, imageUrl: true },
+    where: { 
+      mealPlanMultiplier: filter === 'mealPlanOnly'? { not: null } : {  },
+      userId, 
+      name: { 
+        contains: q ?? "", mode: "insensitive" } 
+      },
+    select: { id: true, name: true, totalTime: true, imageUrl: true, mealPlanMultiplier: true},
     orderBy: { createdAt: "desc" },
   });
 }

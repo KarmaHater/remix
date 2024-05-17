@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLocation } from "@remix-run/react";
 
 export function isRunningOnServer() {
   return typeof window === "undefined";
@@ -33,4 +34,15 @@ export function useDebounce<T extends Array<any>>(
     }, time);
   };
   return debouncedFn;
+}
+
+
+export function useBuildSearchParams() {
+  const location = useLocation();
+
+  return (name: string, value: string)=> {
+    const searchParams  = new URLSearchParams(location.search);
+    searchParams.set(name, value);
+    return `?${searchParams.toString()}`
+  }
 }

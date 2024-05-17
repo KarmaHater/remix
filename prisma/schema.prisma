@@ -55,6 +55,7 @@ model Recipe {
   instructions String
   totalTime    String
   imageUrl     String
+  mealPlanMultiplier     Int?
 
   userId String
 

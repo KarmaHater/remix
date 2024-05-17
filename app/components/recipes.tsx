@@ -59,6 +59,7 @@ type RecipeCardProps = {
   imageUrl?: string;
   isActive?: boolean;
   isLoading?: boolean;
+  mealPlanMultiplier: number | null;
 };
 export function RecipeCard({
   name,
@@ -66,6 +67,7 @@ export function RecipeCard({
   imageUrl,
   isActive,
   isLoading,
+  mealPlanMultiplier,
 }: RecipeCardProps) {
   const delayedLoading = useDelayedBool(isLoading, 500);
   return (
@@ -87,6 +89,7 @@ export function RecipeCard({
       <div className="p-4 flex-grow">
         <h3 className="font-semibold mb-1 text-left">
           {name}
+          {mealPlanMultiplier !== null ? <>&nbsp;(x{mealPlanMultiplier})</> : ""}
           {delayedLoading ? "..." : ""}
         </h3>
         <div

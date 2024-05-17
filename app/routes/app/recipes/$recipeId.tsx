@@ -287,7 +287,7 @@ export default function RecipeDetails() {
       <Form method="post" encType="multipart/form-data">
         <button name="_action" value="saveRecipe" className="hidden"></button>
         <div className="flex mb-2">
-          <Link to="update-meal-plan" className="flex flex-col justify-center" replace><CalendarIcon /></Link>
+          <Link to="update-meal-plan" className={classNames("flex flex-col justify-center", data.recipe?.mealPlanMultiplier !== null ? "text-primary" : "")} replace><CalendarIcon /></Link>
           <div className="ml-2 flex-grow">
             <Input
               key={data.recipe?.id}
