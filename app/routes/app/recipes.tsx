@@ -15,7 +15,7 @@ import {
   useNavigation,
   useSearchParams,
 } from "@remix-run/react";
-import { PrimaryButton, SearchBar } from "~/components/forms";
+import { DeleteButton, PrimaryButton, SearchBar } from "~/components/forms";
 import {
   RecipeCard,
   RecipeDetailWrapper,
@@ -27,6 +27,7 @@ import { getAllRecipes, createRecipe } from "~/modals/recipes.server";
 import { requireLoggedInUser } from "~/utils/auth.server";
 import classNames from "classnames";
 import { useBuildSearchParams } from "~/utils/misc";
+import db from "~/db.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireLoggedInUser(request);
@@ -42,6 +43,27 @@ export async function action({ request }: ActionFunctionArgs) {
   const user = await requireLoggedInUser(request);
   const recipe = await createRecipe(user.id);
   const url = new URL(request.url);
+  const formData = await request.formData();
+
+  switch (formData.get("_action")) {
+    case "createMealPlan": {
+      return redirect("/app/recipes");
+    }
+    case "clearMealPlan": {
+      await db.recipe.updateMany({
+        where: {
+          userId: user.id,
+        },
+        data: {
+          mealPlanMultiplier: null,
+        },
+      });
+      return redirect("/app/recipes");
+    }
+    default: {
+      return null;
+    }
+  }
 
   url.pathname = `/app/recipes/${recipe.id}`;
 
@@ -52,7 +74,7 @@ export default function Recipes() {
   const data = useLoaderData<typeof loader>();
   const location = useLocation();
   const navigation = useNavigation();
-  const fetchers = useFetchers()
+  const fetchers = useFetchers();
   const [searchParams] = useSearchParams();
   const mealPlanOnlyOn = searchParams.get("filter") === "mealPlanOnly";
   const buildSearchParams = useBuildSearchParams();
@@ -62,11 +84,14 @@ export default function Recipes() {
       <RecipeListWrapper>
         <div className="flex gap-4 ">
           <SearchBar placeholder="Search recipes..." className="flex-grow" />
-          <Link reloadDocument to={
-            buildSearchParams('filter', mealPlanOnlyOn ? "" : "mealPlanOnly")
-          }
+          <Link
+            reloadDocument
+            to={buildSearchParams(
+              "filter",
+              mealPlanOnlyOn ? "" : "mealPlanOnly"
+            )}
             className={classNames(
-              'flex flex-col justify-center border-2 border-primary rounded-md px-2',
+              "flex flex-col justify-center border-2 border-primary rounded-md px-2",
               mealPlanOnlyOn ? "text-white bg-primary" : "px-2 text-primary"
             )}
           >
@@ -74,12 +99,27 @@ export default function Recipes() {
           </Link>
         </div>
         <Form method="post" className="mt-4" reloadDocument>
-          <PrimaryButton type="submit" className="w-full">
-            <div className="flex w-full justify-center">
-              <PlusIcon />
-              <span className="ml-2">Create New Recipe</span>
-            </div>
-          </PrimaryButton>
+          {mealPlanOnlyOn ? (
+            <PrimaryButton
+              type="submit"
+              className="w-full"
+              name="_action"
+              value="createMealPlan"
+            >
+              <div className="flex w-full justify-center">
+                <PlusIcon />
+                <span className="ml-2">Create New Recipe</span>
+              </div>
+            </PrimaryButton>
+          ) : (
+            <DeleteButton
+              className="w-full"
+              name="_action"
+              value="clearMealPlan"
+            >
+              Clear plan
+            </DeleteButton>
+          )}
         </Form>
         <ul>
           {data.recipes.map((recipe) => {
@@ -89,10 +129,13 @@ export default function Recipes() {
             for (const fetcher of fetchers) {
               if (fetcher.formAction?.includes(recipe.id)) {
                 if (fetcher.formData?.get("_action") === "saveName") {
-                  optimisticData.set("name", fetcher.formData.get("name"))
+                  optimisticData.set("name", fetcher.formData.get("name"));
                 }
                 if (fetcher.formData?.get("_action") === "saveTotalTime") {
-                  optimisticData.set("totalTime", fetcher.formData.get("totalTime"))
+                  optimisticData.set(
+                    "totalTime",
+                    fetcher.formData.get("totalTime")
+                  );
                 }
               }
             }
@@ -106,7 +149,9 @@ export default function Recipes() {
                   {({ isActive }) => (
                     <RecipeCard
                       name={optimisticData.get("name") || recipe.name}
-                      totalTime={optimisticData.get("totalTime") || recipe.totalTime}
+                      totalTime={
+                        optimisticData.get("totalTime") || recipe.totalTime
+                      }
                       imageUrl={recipe.imageUrl}
                       isActive={isActive}
                       isLoading={isLoading}
