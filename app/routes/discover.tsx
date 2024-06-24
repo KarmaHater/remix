@@ -1,16 +1,33 @@
-import { json } from "@remix-run/node";
+import db from "~/db.server";
 import { useLoaderData } from "@remix-run/react";
+import { DiscoverGrid, DiscoverListItem } from "~/components/discover";
 
 export async function loader() {
-  return json({ message: ["Hello from loader discover!"] });
+  const recipes = await db.recipe.findMany({
+    take: 25,
+    orderBy: { updatedAt: "desc" },
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
+  });
+  return { recipes };
 }
 
 export default function Discover() {
-  const data = useLoaderData<typeof loader>();
+  const { recipes } = useLoaderData<typeof loader>();
   return (
-    <div>
-      <h1>Discover</h1>
-      {data.message.map((message) => message)}
+    <div className="h-[calc(100vh-1rem)] p-4 m-[-1rem] overflow-auto">
+      <h1 className="text-2xl font-bold mb-4">Discover</h1>
+      <DiscoverGrid>
+        {recipes.map((recipe) => (
+          <DiscoverListItem key={recipe.id} recipe={recipe} />
+        ))}
+      </DiscoverGrid>
     </div>
   );
 }

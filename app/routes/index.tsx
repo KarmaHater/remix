@@ -1,21 +1,5 @@
-import type { LinksFunction, MetaFunction } from "@remix-run/node";
-import PageDescription from "~/components/page-description";
+import { redirect } from "@remix-run/node";
 
-export const links: LinksFunction = () => {
-  return [];
-};
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
-  ];
-};
-
-export default function Index() {
-  return (
-    <div>
-      <PageDescription header="Home" description="Welcome to the home page!" />
-    </div>
-  );
+export function loader() {
+  return redirect("/discover");
 }

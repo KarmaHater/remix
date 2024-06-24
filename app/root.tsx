@@ -27,6 +27,10 @@ import classNames from "classnames";
 import { getCurrentUser } from "./utils/auth.server";
 
 export const links: LinksFunction = () => [
+  {
+    rel: "stylesheet",
+    href: "/theme.css",
+  },
   ...(cssBundleHref
     ? [{ rel: "stylesheet", href: cssBundleHref }]
     : [{ rel: "stylesheet", href: tailwind }]),
@@ -60,9 +64,6 @@ export default function App() {
           )}
         >
           <ul className="flex flex-col">
-            <AppNavLink to="/">
-              <HomeIcon />
-            </AppNavLink>
             <AppNavLink to="discover">
               <DiscoverIcon />
             </AppNavLink>
