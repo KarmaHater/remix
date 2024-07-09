@@ -7,12 +7,15 @@ import { formValidation } from "~/utils/validation";
 // import { sessionCookie } from "~/cookies";
 import { generateMagicLink } from "~/magic-links.server";
 import { requireLoggedOutUser } from "~/utils/auth.server";
+import db from "~/db.server";
 
 const loginSchema = z.object({
   email: z.string().email(),
 });
 
 export const loader: LoaderFunction = async ({ request }) => {
+  // const user = await db.user.findFirst();
+  // console.log(user, "here");
   await requireLoggedOutUser(request);
 
   return null;

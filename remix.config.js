@@ -11,4 +11,9 @@ export default {
   routes(defineRoutes) {
     return createRoutesFromFolders(defineRoutes);
   },
+
+  // routes: (defineRoutes) =>
+  //   defineRoutes((route) =>
+  //     route("__tests/login", "__test-routes__/login.tsx")
+  //   ),
 };
